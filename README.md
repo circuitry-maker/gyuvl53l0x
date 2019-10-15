@@ -2,6 +2,8 @@
 
 > no_std driver for [VL53L0X](https://www.st.com/resource/en/datasheet/vl53l0x.pdf) (Time-of-Flight I2C laser-ranging module)
 
+[![Build Status](https://travis-ci.org/lucazulian/vl53l0x.svg?branch=master)](https://travis-ci.org/lucazulian/vl53l0x)
+
 ## Basic usage
 
 Include this library as a dependency in your `Cargo.toml`:
