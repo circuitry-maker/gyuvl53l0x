@@ -1,5 +1,5 @@
 [package]
-name = "vl53l0x"
+name = "gyuvl53l0x"
 version = "0.1.0"
 description = "A rust driver for the VL53L0X (Time-of-Flight I2C laser-ranging module)"
 authors = ["Luca Zulian <lucagiuggia@gmail.com>"]
@@ -22,3 +22,4 @@ nb = "0.1.2"
 [dependencies.cast]
 default-features = false
 version = "0.2.2"
+uninit = "0.1.0"

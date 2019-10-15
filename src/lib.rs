@@ -12,7 +12,7 @@ extern crate embedded_hal as ehal;
 extern crate generic_array;
 extern crate nb;
 
-use core::mem;
+use ::core::mem::MaybeUninit;
 
 use cast::u16;
 
@@ -68,10 +68,10 @@ where
     {
         let mut chip = VL53L0X {
             com: i2c,
-            io_mode2v8: io_mode2v8,
+            io_mode2v8,
             stop_variable: 0,
             measurement_timing_budget_microseconds: 0,
-            address: address
+            address
         };
 
         let wai = chip.who_am_i()?;
@@ -108,7 +108,7 @@ where
     where
         N: ArrayLength<u8>,
     {
-        let mut buffer: GenericArray<u8, N> = unsafe { mem::uninitialized() };
+        let mut buffer: GenericArray<u8, N> = unsafe { MaybeUninit::<GenericArray<u8, N>>::uninit().assume_init() };
 
         {
             let buffer: &mut [u8] = &mut buffer;
@@ -609,7 +609,7 @@ where
                 msrc_dss_tcc_mclks as u16,
                 pre_range_vcselperiod_pclks,
             ),
-            pre_range_mclks: pre_range_mclks,
+            pre_range_mclks,
             pre_range_microseconds: timeout_mclks_to_microseconds(
                 pre_range_mclks,
                 pre_range_vcselperiod_pclks,
@@ -765,7 +765,7 @@ fn encode_timeout(timeout_mclks: u16) -> u16 {
 
     ls_byte = (timeout_mclks as u32) - 1;
 
-    while (ls_byte & 0xFFFFFF00) > 0 {
+    while (ls_byte & 0xFFFF_FF00) > 0 {
         ls_byte >>= 1;
         ms_byte += 1;
     }

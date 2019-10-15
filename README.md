@@ -1,24 +1,24 @@
-# `vl53l0x`
+# `gyuvl53l0x`
 
 > no_std driver for [VL53L0X](https://www.st.com/resource/en/datasheet/vl53l0x.pdf) (Time-of-Flight I2C laser-ranging module)
 
-[![Build Status](https://travis-ci.org/lucazulian/vl53l0x.svg?branch=master)](https://travis-ci.org/lucazulian/vl53l0x)
+[![Build Status](https://travis-ci.org/lucazulian/gyuvl53l0x.svg?branch=master)](https://travis-ci.org/lucazulian/gyuvl53l0x)
 
 ## Basic usage
 
-Include this library as a dependency in your `Cargo.toml`:
+Include this [library](https://crates.io/crates/gyuvl53l0x) as a dependency in your `Cargo.toml`:
 
-```
-[dependencies.vl53l0x]
+```rust
+[dependencies.gyuvl53l0x]
 version = "<version>"
 ```
 
 Use [embedded-hal](https://github.com/rust-embedded/embedded-hal) implementation to get I2C handle and then create vl53l0x handle:
 
 ```rust
-extern crate vl53l0x;
+extern crate gyuvl53l0x;
 
-match vl53l0x::VL53L0x::new(i2c) {
+match gyuvl53l0x::VL53L0X::new(i2c, 0x29) {
     Ok(mut u) => {
         loop {
             match u.read_range_single_millimeters_blocking() {
@@ -31,15 +31,19 @@ match vl53l0x::VL53L0x::new(i2c) {
             }
         }
     }
-    Err(vl53l0x::Error::BusError(error)) => {
+    Err(gyuvl53l0x::VL53L0X::Error::BusError(error)) => {
         println!!("{:#?}", error);
+        panic!();
+    }
+    _ => {
+        panic!();
     }
 };
 ```
 
 ## Documentation
 
-API Docs available on [docs.rs]()
+API Docs available on [docs.rs](https://docs.rs/gyuvl53l0x/0.1.0/gyuvl53l0x/)
 
 ## License
 
