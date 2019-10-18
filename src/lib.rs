@@ -20,10 +20,10 @@ use ehal::blocking::i2c::{Write, WriteRead};
 use generic_array::typenum::consts::*;
 use generic_array::{ArrayLength, GenericArray};
 
-/// Sometimes it's correct (0x29 << 1) instead.
+/// Sometimes it's correct (0x29 << 1) instead
 const ADDRESS_DEFAULT: u8 = 0x29;
 
-/// dummy
+/// Device struct
 pub struct VL53L0X<I2C: ehal::blocking::i2c::WriteRead> {
     com: I2C,
     io_mode2v8: bool,
@@ -35,9 +35,9 @@ pub struct VL53L0X<I2C: ehal::blocking::i2c::WriteRead> {
 /// MPU Error
 #[derive(Debug, Copy, Clone)]
 pub enum Error<E> {
-    /// WHO_AM_I returned invalid value (returned value is argument).
+    /// WHO_AM_I returned invalid value (returned value is argument)
     InvalidDevice(u8),
-    /// Underlying bus error.
+    /// Underlying bus error
     BusError(E),
     /// Timeout
     Timeout,
@@ -53,7 +53,7 @@ impl<I2C, E> VL53L0X<I2C>
 where
     I2C: WriteRead<Error = E> + Write<Error = E>,
 {
-    /// Creates a sensor with default configuration.
+    /// Creates a sensor with default configuration
     pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>>
     where
         I2C: ehal::blocking::i2c::WriteRead<Error = E>,
@@ -61,7 +61,7 @@ where
         VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
     }
 
-    /// Creates a sensor with specific configuration.
+    /// Creates a sensor with specific configuration
     pub fn new(i2c: I2C, address: u8, io_mode2v8: bool) -> Result<VL53L0X<I2C>, Error<E>>
     where
         I2C: ehal::blocking::i2c::WriteRead<Error = E>,
@@ -221,7 +221,23 @@ where
         Ok((count, type_is_aperture))
     }
 
-    /// startContinuous
+    /// Set new address for device
+    pub fn set_device_address(&mut self, address: u8) -> Result<bool, E> {
+        // VL53L0X_REG_I2C_SLAVE_DEVICE_ADDRESS
+        match self.write_register(Register::REG_I2C_SLAVE_DEVICE_ADDRESS, address & 0x07) {
+            Ok(_) => {
+                self.address = address;
+                Ok(true)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Start continuous ranging
+    /// Ranging is performed in a continuous way after the API function is called. 
+    /// As soon as the measurement is finished, another one is started without delay.
+    /// User has to stop the ranging to return to SW standby. The last measurement is
+    /// completed before stopping.
     pub fn start_continuous(&mut self, period_millis: u32) -> Result<(), E> {
         self.write_byte(0x80, 0x01)?;
         self.write_byte(0xFF, 0x01)?;
@@ -255,7 +271,7 @@ where
         Ok(())
     }
 
-    /// stopContinuous()
+    /// Stop continuous ranging
     pub fn stop_continuous(&mut self) -> Result<(), E> {
         // VL53L0X_REG_SYSRANGE_MODE_SINGLESHOT
         self.write_register(Register::SYSRANGE_START, 0x01)?;
@@ -275,7 +291,7 @@ where
                 if (r & 0x07) == 0 {
                     Err(nb::Error::WouldBlock)
                 } else {
-                    let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_plus_10);
+                    let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_PLUS_10);
                     let write_err = self.write_register(Register::SYSTEM_INTERRUPT_CLEAR, 0x01);
                     match (range_err, write_err) {
                         (Ok(res), Ok(_)) => Ok(res),
@@ -297,7 +313,7 @@ where
                 return Err(Error::Timeout);
             }
         }
-        let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_plus_10);
+        let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_PLUS_10);
         // don't use ? to cleanup
         self.write_register(Register::SYSTEM_INTERRUPT_CLEAR, 0x01)?;
 
@@ -404,7 +420,7 @@ where
                 // This bit is lower than the first one that should be enabled, or (reference_spad_count) bits have already been enabled, so zero this bit
                 ref_spad_map[i / 8] &= !(1 << (i % 8));
             } else if (ref_spad_map[i / 8] >> (i % 8)) & 0x1 > 0 {
-                spads_enabled = spads_enabled + 1;
+                spads_enabled += 1;
             }
         }
 
@@ -770,7 +786,7 @@ fn encode_timeout(timeout_mclks: u16) -> u16 {
         ms_byte += 1;
     }
 
-    return (ms_byte << 8) | ((ls_byte & 0xFF) as u16);
+    (ms_byte << 8) | ((ls_byte & 0xFF) as u16)
 }
 
 fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
@@ -805,6 +821,7 @@ enum Register {
     SYSRANGE_START = 0x00,
     WHO_AM_I = 0xC0,
     VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV = 0x89,
+    REG_I2C_SLAVE_DEVICE_ADDRESS = 0x8A,
     MSRC_CONFIG_CONTROL = 0x60,
     SYSTEM_SEQUENCE_CONFIG = 0x01,
     FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT = 0x44,
@@ -817,7 +834,7 @@ enum Register {
     SYSTEM_INTERRUPT_CLEAR = 0x0B,
     RESULT_INTERRUPT_STATUS = 0x13,
     RESULT_RANGE_STATUS = 0x14,
-    RESULT_RANGE_STATUS_plus_10 = 0x1e,
+    RESULT_RANGE_STATUS_PLUS_10 = 0x1e,
     OSC_CALIBRATE_VAL = 0xF8,
     SYSTEM_INTERMEASUREMENT_PERIOD = 0x04,
     FINAL_RANGE_CONFIG_VCSEL_PERIOD = 0x70,
