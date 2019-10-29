@@ -7,11 +7,10 @@ categories = ["embedded", "hardware-support", "no-std"]
 keywords = ["hal", "IO"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/lucazulian/vl53l0x"
+repository = "https://github.com/lucazulian/gyuvl53l0x"
 edition = "2018"
 exclude = [
     ".travis.yml", 
-    "examples",
 ]
 
 [dependencies]
