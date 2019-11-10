@@ -25,7 +25,7 @@ match gyuvl53l0x::VL53L0X::default(i2c) {
         loop {
             match u.read_range_single_millimeters_blocking() {
                 Ok(a) => {
-                    println!("{:#?}", a);
+                    println!("{:#?}", a).unwrap();
                 }
                 _ => {
                     println!!("Not ready").unwrap();
@@ -34,7 +34,7 @@ match gyuvl53l0x::VL53L0X::default(i2c) {
         }
     }
     Err(gyuvl53l0x::VL53L0X::Error::BusError(error)) => {
-        println!!("{:#?}", error);
+        println!!("{:#?}", error).unwrap();
         panic!();
     }
     _ => {
