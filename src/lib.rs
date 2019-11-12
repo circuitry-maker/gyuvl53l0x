@@ -14,7 +14,6 @@
 )]
 #![allow(dead_code)]
 
-
 extern crate cast;
 extern crate embedded_hal as ehal;
 extern crate generic_array;
