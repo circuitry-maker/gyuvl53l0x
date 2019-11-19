@@ -23,7 +23,7 @@ use ::core::mem::MaybeUninit;
 
 use cast::u16;
 
-use ehal::blocking::i2c::{Write, WriteRead};
+use ehal::blocking::i2c::WriteRead;
 use generic_array::typenum::consts::*;
 use generic_array::{ArrayLength, GenericArray};
 
@@ -32,7 +32,7 @@ const ADDRESS_DEFAULT: u8 = 0x29;
 
 /// Struct for VL53L0X
 #[derive(Debug, Copy, Clone)]
-pub struct VL53L0X<I2C: WriteRead> {
+pub struct VL53L0X<I2C> {
     com: I2C,
     io_mode2v8: bool,
     stop_variable: u8,
@@ -59,20 +59,16 @@ impl<E> From<E> for Error<E> {
 
 impl<I2C, E> VL53L0X<I2C>
 where
-    I2C: WriteRead<Error = E> + Write<Error = E>,
+    I2C: WriteRead<Error = E>,
 {
     /// Creates a sensor with default configuration
     pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
     {
         VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
     }
 
     /// Creates a sensor with specific configuration
     pub fn new(i2c: I2C, address: u8, io_mode2v8: bool) -> Result<VL53L0X<I2C>, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
     {
         let mut chip = VL53L0X {
             com: i2c,
