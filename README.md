@@ -19,22 +19,22 @@ Use [embedded-hal](https://github.com/rust-embedded/embedded-hal) implementation
 ```rust
 extern crate gyuvl53l0x;
 
-match gyuvl53l0x::VL53L0X::default(i2c) {
+match gyuvl53l0x::VL53L0X::default(&mut i2c) {
     Ok(mut u) => {
-        u.set_device_address(0x39).unwrap();
+        u.set_device_address(&mut i2c, 0x39).unwrap();
         loop {
-            match u.read_range_single_millimeters_blocking() {
+            match u.read_range_single_millimeters_blocking(&mut i2c) {
                 Ok(a) => {
                     println!("{:#?}", a).unwrap();
                 }
                 _ => {
-                    println!!("Not ready").unwrap();
+                    println!("Not ready").unwrap();
                 }
             }
         }
     }
     Err(gyuvl53l0x::VL53L0X::Error::BusError(error)) => {
-        println!!("{:#?}", error).unwrap();
+        println!("{:#?}", error).unwrap();
         panic!();
     }
     _ => {
