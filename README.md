@@ -45,7 +45,7 @@ match gyuvl53l0x::VL53L0X::default(&mut i2c) {
 
 ## Documentation
 
-API Docs available on [docs.rs](https://docs.rs/gyuvl53l0x/0.1.0/gyuvl53l0x/)
+API Docs available on [docs.rs](https://docs.rs/gyuvl53l0x/0.1.3/gyuvl53l0x/)
 
 ## License
 
