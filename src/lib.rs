@@ -30,166 +30,10 @@ use generic_array::{ArrayLength, GenericArray};
 /// Sometimes it's correct (0x29 << 1) instead of 0x29
 const ADDRESS_DEFAULT: u8 = 0x29;
 
-/// Struct for VL53L0X state
-#[derive(Debug, Clone, Copy)]
-pub struct VL53L0X {
-    io_mode2v8: bool,
-    stop_variable: u8,
-    measurement_timing_budget_microseconds: u32,
-    address: u8,
-}
-
-//where I2C: WriteRead<Error = E>,
-
-impl VL53L0X {
-    /// Creates a sensor with default configuration
-    pub fn default<'a, I2C, E>(i2c: &'a mut I2C) -> Result<VL53L0X, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
-    }
-
-    /// Creates a sensor with specific configuration
-    pub fn new<'a, I2C, E>(
-        i2c: &'a mut I2C,
-        address: u8,
-        io_mode2v8: bool,
-    ) -> Result<VL53L0X, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::new(i2c, io_mode2v8, address);
-        match chip.init() {
-            Ok(()) => Ok(chip.get_state()),
-            Err(e) => Err(e),
-        }
-    }
-
-    /// Set new address for device
-    pub fn set_device_address<'a, I2C, E>(
-        &mut self,
-        i2c: &'a mut I2C,
-        address: u8,
-    ) -> Result<bool, E>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.set_device_address(address);
-        *self = chip.get_state();
-        result
-    }
-
-    /// Start continuous ranging measurements
-    /// Ranging is performed in a continuous way after the API function is called.
-    /// As soon as the measurement is finished, another one is started without delay.
-    /// User has to stop the ranging to return to SW standby. The last measurement is
-    /// completed before stopping
-    ///
-    /// If period_millis is 0, continuous back-to-back mode is used (the sensor takes
-    /// measurements as often as possible); otherwise, continuous timed mode is used,
-    /// with the given inter-measurement period in milliseconds determining how often
-    /// the sensor takes a measurement
-    pub fn start_continuous<'a, I2C, E>(
-        &mut self,
-        i2c: &'a mut I2C,
-        period_millis: u32,
-    ) -> Result<(), E>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.start_continuous(period_millis);
-        *self = chip.get_state();
-        result
-    }
-
-    /// Stop continuous measurements
-    pub fn stop_continuous<'a, I2C, E>(&mut self, i2c: &'a mut I2C) -> Result<(), E>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.stop_continuous();
-        *self = chip.get_state();
-        result
-    }
-
-    /// Reads and returns range measurement in millimiters
-    pub fn read_range_mm<'a, I2C, E>(&mut self, i2c: &'a mut I2C) -> nb::Result<u16, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.read_range_mm();
-        *self = chip.get_state();
-        result
-    }
-
-    /// Returns a range reading in millimeters when continuous mode is active
-    pub fn read_range_continuous_millimeters_blocking<'a, I2C, E>(
-        &mut self,
-        i2c: &'a mut I2C,
-    ) -> Result<u16, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.read_range_continuous_millimeters_blocking();
-        *self = chip.get_state();
-        result
-    }
-
-    /// Returns a single reading in millimeters
-    pub fn read_range_single_millimeters_blocking<'a, I2C, E>(
-        &mut self,
-        i2c: &'a mut I2C,
-    ) -> Result<u16, Error<E>>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.read_range_single_millimeters_blocking();
-        *self = chip.get_state();
-        result
-    }
-
-    /// Returns WHO_AM_I register
-    pub fn who_am_i<'a, I2C, E>(&mut self, i2c: &'a mut I2C) -> Result<u8, E>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.who_am_i();
-        *self = chip.get_state();
-        result
-    }
-
-    /// Set the measurement timing budget in microseconds, which is the time allowed for one measurement;
-    /// the ST API and this library take care of splitting the timing budget among the sub-steps in the
-    /// ranging sequence. A longer timing budget allows for more accurate measurements. Increasing the
-    /// budget by a factor of N decreases the range measurement standard deviation by a factor of sqrt(N).
-    /// Defaults to about 33 milliseconds; the minimum is 20 ms
-    pub fn set_measurement_timing_budget<'a, I2C, E>(
-        &mut self,
-        i2c: &'a mut I2C,
-        budget_microseconds: u32,
-    ) -> Result<bool, E>
-    where
-        I2C: WriteRead<Error = E>,
-    {
-        let mut chip = ConnectedVL53L0X::from_state(self, i2c);
-        let result = chip.set_measurement_timing_budget(budget_microseconds);
-        *self = chip.get_state();
-        result
-    }
-}
-
-/// Actual implementation for VL53L0X functions (given an I2C bus)
-#[derive(Debug)]
-pub struct ConnectedVL53L0X<'a, I2C> {
-    com: &'a mut I2C,
+/// Struct for VL53L0X
+#[derive(Debug, Copy, Clone)]
+pub struct VL53L0X<I2C> {
+    com: I2C,
     io_mode2v8: bool,
     stop_variable: u8,
     measurement_timing_budget_microseconds: u32,
@@ -213,48 +57,32 @@ impl<E> From<E> for Error<E> {
     }
 }
 
-impl<'a, I2C, E> ConnectedVL53L0X<'a, I2C>
+impl<I2C, E> VL53L0X<I2C>
 where
     I2C: WriteRead<Error = E>,
 {
-    /// Create chip data for the first time
-    pub fn new(i2c: &'a mut I2C, io_mode2v8: bool, address: u8) -> ConnectedVL53L0X<'a, I2C> {
-        ConnectedVL53L0X {
+    /// Creates a sensor with default configuration
+    pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>>
+    {
+        VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
+    }
+
+    /// Creates a sensor with specific configuration
+    pub fn new(i2c: I2C, address: u8, io_mode2v8: bool) -> Result<VL53L0X<I2C>, Error<E>>
+    {
+        let mut chip = VL53L0X {
             com: i2c,
             io_mode2v8,
             stop_variable: 0,
             measurement_timing_budget_microseconds: 0,
-            address,
-        }
-    }
+            address
+        };
 
-    /// Create chip data from chip state
-    pub fn from_state(state: &VL53L0X, i2c: &'a mut I2C) -> ConnectedVL53L0X<'a, I2C> {
-        ConnectedVL53L0X {
-            com: i2c,
-            io_mode2v8: state.io_mode2v8,
-            stop_variable: state.stop_variable,
-            measurement_timing_budget_microseconds: state.measurement_timing_budget_microseconds,
-            address: state.address,
-        }
-    }
+        let wai = chip.who_am_i()?;
 
-    /// Get chip state
-    pub fn get_state(&self) -> VL53L0X {
-        VL53L0X {
-            io_mode2v8: self.io_mode2v8,
-            stop_variable: self.stop_variable,
-            measurement_timing_budget_microseconds: self.measurement_timing_budget_microseconds,
-            address: self.address,
-        }
-    }
-
-    /// Initialize chip
-    pub fn init(&mut self) -> Result<(), Error<E>> {
-        let wai = self.who_am_i()?;
         if wai == 0xEE {
-            self.init_hardware()?;
-            Ok(())
+            chip.init_hardware()?;
+            Ok(chip)
         } else {
             Err(Error::InvalidDevice(wai))
         }
@@ -410,11 +238,11 @@ where
     }
 
     /// Start continuous ranging measurements
-    /// Ranging is performed in a continuous way after the API function is called.
+    /// Ranging is performed in a continuous way after the API function is called. 
     /// As soon as the measurement is finished, another one is started without delay.
     /// User has to stop the ranging to return to SW standby. The last measurement is
     /// completed before stopping
-    ///
+    /// 
     /// If period_millis is 0, continuous back-to-back mode is used (the sensor takes
     /// measurements as often as possible); otherwise, continuous timed mode is used,
     /// with the given inter-measurement period in milliseconds determining how often
@@ -489,6 +317,7 @@ where
                 return Err(Error::Timeout);
             }
         }
+        
         let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_PLUS_10);
         self.write_register(Register::SYSTEM_INTERRUPT_CLEAR, 0x01)?;
 
@@ -568,7 +397,7 @@ where
         let (spad_count, spad_type_is_aperture) = self.get_spad_info()?;
 
         // the SPAD map (RefGoodSpadMap) is read by VL53L0X_get_info_from_device() in the API,
-        // but the same data seems to be more easily readable from GLOBAL_CONFIG_SPAD_ENABLES_REF_0
+        // but the same data seems to be more easily readable from GLOBAL_CONFIG_SPAD_ENABLES_REF_0 
         // through _6, so read it from there
         let mut ref_spad_map = self.read_6bytes(Register::GLOBAL_CONFIG_SPAD_ENABLES_REF_0)?;
 
@@ -756,6 +585,7 @@ where
         let msrc_dss_tcc_mclks = self.read_register(Register::MSRC_CONFIG_TIMEOUT_MACROP)? + 1;
         let final_range_vcsel_period_pclks =
             self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
+        
         Ok(SeqStepTimeouts {
             pre_range_vcselperiod_pclks,
             msrc_dss_tcc_mclks,
@@ -926,15 +756,13 @@ fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks) as u32;
-    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2))
-        / 1000
+    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2)) / 1000
 }
 
 fn timeout_microseconds_to_mclks(timeout_period_microseconds: u32, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks) as u32;
 
-    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2))
-        / macro_period_nanoseconds
+    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2)) / macro_period_nanoseconds
 }
 
 fn decode_vcsel_period(register_value: u8) -> u8 {
