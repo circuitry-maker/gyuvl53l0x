@@ -3,9 +3,9 @@
 //! Manages a new VL53L0X, Time-of-Flight I2C laser-ranging module
 
 #![deny(
-    missing_docs,
-    missing_debug_implementations,
     missing_copy_implementations,
+    missing_debug_implementations,
+    missing_docs,
     trivial_casts,
     unstable_features,
     unused_import_braces,
@@ -19,7 +19,7 @@ extern crate embedded_hal as ehal;
 extern crate generic_array;
 extern crate nb;
 
-use ::core::mem::MaybeUninit;
+use core::mem::MaybeUninit;
 
 use cast::u16;
 
@@ -62,20 +62,18 @@ where
     I2C: WriteRead<Error = E>,
 {
     /// Creates a sensor with default configuration
-    pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>>
-    {
+    pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>> {
         VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
     }
 
     /// Creates a sensor with specific configuration
-    pub fn new(i2c: I2C, address: u8, io_mode2v8: bool) -> Result<VL53L0X<I2C>, Error<E>>
-    {
+    pub fn new(i2c: I2C, address: u8, io_mode2v8: bool) -> Result<VL53L0X<I2C>, Error<E>> {
         let mut chip = VL53L0X {
             com: i2c,
             io_mode2v8,
             stop_variable: 0,
             measurement_timing_budget_microseconds: 0,
-            address
+            address,
         };
 
         let wai = chip.who_am_i()?;
@@ -238,11 +236,11 @@ where
     }
 
     /// Start continuous ranging measurements
-    /// Ranging is performed in a continuous way after the API function is called. 
+    /// Ranging is performed in a continuous way after the API function is called.
     /// As soon as the measurement is finished, another one is started without delay.
     /// User has to stop the ranging to return to SW standby. The last measurement is
     /// completed before stopping
-    /// 
+    ///
     /// If period_millis is 0, continuous back-to-back mode is used (the sensor takes
     /// measurements as often as possible); otherwise, continuous timed mode is used,
     /// with the given inter-measurement period in milliseconds determining how often
@@ -317,7 +315,7 @@ where
                 return Err(Error::Timeout);
             }
         }
-        
+
         let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_PLUS_10);
         self.write_register(Register::SYSTEM_INTERRUPT_CLEAR, 0x01)?;
 
@@ -397,7 +395,7 @@ where
         let (spad_count, spad_type_is_aperture) = self.get_spad_info()?;
 
         // the SPAD map (RefGoodSpadMap) is read by VL53L0X_get_info_from_device() in the API,
-        // but the same data seems to be more easily readable from GLOBAL_CONFIG_SPAD_ENABLES_REF_0 
+        // but the same data seems to be more easily readable from GLOBAL_CONFIG_SPAD_ENABLES_REF_0
         // through _6, so read it from there
         let mut ref_spad_map = self.read_6bytes(Register::GLOBAL_CONFIG_SPAD_ENABLES_REF_0)?;
 
@@ -585,7 +583,7 @@ where
         let msrc_dss_tcc_mclks = self.read_register(Register::MSRC_CONFIG_TIMEOUT_MACROP)? + 1;
         let final_range_vcsel_period_pclks =
             self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
-        
+
         Ok(SeqStepTimeouts {
             pre_range_vcselperiod_pclks,
             msrc_dss_tcc_mclks,
@@ -756,13 +754,15 @@ fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks) as u32;
-    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2)) / 1000
+    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2))
+        / 1000
 }
 
 fn timeout_microseconds_to_mclks(timeout_period_microseconds: u32, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks) as u32;
 
-    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2)) / macro_period_nanoseconds
+    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2))
+        / macro_period_nanoseconds
 }
 
 fn decode_vcsel_period(register_value: u8) -> u8 {
