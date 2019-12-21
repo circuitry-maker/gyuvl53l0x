@@ -23,7 +23,7 @@ use core::mem::MaybeUninit;
 
 use cast::u16;
 
-use ehal::blocking::i2c::WriteRead;
+use ehal::blocking::i2c::{Read, Write, WriteRead};
 use generic_array::typenum::consts::*;
 use generic_array::{ArrayLength, GenericArray};
 
@@ -59,7 +59,7 @@ impl<E> From<E> for Error<E> {
 
 impl<I2C, E> VL53L0X<I2C>
 where
-    I2C: WriteRead<Error = E>,
+    I2C: WriteRead<Error = E> + Write<Error = E> + Read<Error = E>,
 {
     /// Creates a sensor with default configuration
     pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>> {
@@ -137,6 +137,10 @@ where
         let mut buffer = [0];
         self.com
             .write_read(self.address, &[reg as u8, byte], &mut buffer)
+    }
+
+    fn write_only_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
+        self.com.write(self.address, &[reg as u8, byte])
     }
 
     fn write_6bytes(&mut self, reg: Register, bytes: [u8; 6]) -> Result<(), E> {
@@ -226,7 +230,7 @@ where
 
     /// Set new address for device
     pub fn set_device_address(&mut self, address: u8) -> Result<bool, E> {
-        match self.write_register(Register::REG_I2C_SLAVE_DEVICE_ADDRESS, address & 0x07) {
+        match self.write_only_register(Register::REG_I2C_SLAVE_DEVICE_ADDRESS, address) {
             Ok(_) => {
                 self.address = address;
                 Ok(true)
