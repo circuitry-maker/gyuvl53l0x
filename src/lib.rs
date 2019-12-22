@@ -19,10 +19,8 @@ extern crate embedded_hal as ehal;
 extern crate generic_array;
 extern crate nb;
 
-use core::mem::MaybeUninit;
-
 use cast::u16;
-
+use core::mem::MaybeUninit;
 use ehal::blocking::i2c::{Read, Write, WriteRead};
 use generic_array::typenum::consts::*;
 use generic_array::{ArrayLength, GenericArray};
@@ -73,7 +71,7 @@ where
             io_mode2v8,
             stop_variable: 0,
             measurement_timing_budget_microseconds: 0,
-            address,
+            address: address << 1,
         };
 
         let wai = chip.who_am_i()?;
@@ -193,6 +191,7 @@ where
         self.write_byte(0xFF, 0x06)?;
         let mut tmp83 = self.read_byte(0x83)?;
         self.write_byte(0x83, tmp83 | 0x04)?;
+
         self.write_byte(0xFF, 0x07)?;
         self.write_byte(0x81, 0x01)?;
 
@@ -217,8 +216,10 @@ where
 
         self.write_byte(0x81, 0x00)?;
         self.write_byte(0xFF, 0x06)?;
+
         tmp83 = self.read_byte(0x83)?;
         self.write_byte(0x83, tmp83 & !0x04)?;
+
         self.write_byte(0xFF, 0x01)?;
         self.write_byte(0x00, 0x01)?;
 
@@ -232,7 +233,7 @@ where
     pub fn set_device_address(&mut self, address: u8) -> Result<bool, E> {
         match self.write_only_register(Register::REG_I2C_SLAVE_DEVICE_ADDRESS, address) {
             Ok(_) => {
-                self.address = address;
+                self.address = address << 1;
                 Ok(true)
             }
             Err(e) => Err(e),
@@ -253,8 +254,10 @@ where
         self.write_byte(0x80, 0x01)?;
         self.write_byte(0xFF, 0x01)?;
         self.write_byte(0x00, 0x00)?;
+
         let sv = self.stop_variable;
         self.write_byte(0x91, sv)?;
+
         self.write_byte(0x00, 0x01)?;
         self.write_byte(0xFF, 0x00)?;
         self.write_byte(0x80, 0x00)?;
@@ -739,6 +742,7 @@ fn encode_timeout(timeout_mclks: u16) -> u16 {
     if timeout_mclks == 0 {
         return 0;
     }
+
     let mut ls_byte: u32;
     let mut ms_byte: u16 = 0;
 
