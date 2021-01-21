@@ -1,0 +1,27 @@
+name: gyuvl53l0x-ci
+
+on: [push, pull_request]
+
+env:
+  RUSTFLAGS: '--deny warnings'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install Target
+      run: rustup target install thumbv7em-none-eabihf
+    - uses: actions/checkout@v2
+
+    - name: Formatting
+      uses: actions-rs/cargo@v1
+      with:
+        command: fmt
+        args: --all -- --check
+
+    - name: Build
+      run: cargo build --target=thumbv7em-none-eabihf --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
