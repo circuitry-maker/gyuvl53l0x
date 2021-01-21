@@ -757,7 +757,7 @@ fn encode_timeout(timeout_mclks: u16) -> u16 {
 }
 
 fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
-    (((2304u32 * (vcsel_period_pclks as u32) * 1655u32) + 500u32) / 1000u32)
+    ((2304u32 * (vcsel_period_pclks as u32) * 1655u32) + 500u32) / 1000u32
 }
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
