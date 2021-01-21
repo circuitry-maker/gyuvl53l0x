@@ -13,6 +13,7 @@
     warnings
 )]
 #![allow(dead_code)]
+#![allow(clippy::uninit_assumed_init)]
 
 extern crate cast;
 extern crate embedded_hal as ehal;
@@ -171,7 +172,7 @@ where
     }
 
     fn set_signal_rate_limit(&mut self, limit: f32) -> Result<bool, E> {
-        if limit < 0.0 || limit > 511.99 {
+        if !(0.0..=511.99).contains(&limit) {
             Ok(false)
         } else {
             // Q9.7 fixed point format (9 integer bits, 7 fractional bits)
@@ -297,7 +298,7 @@ where
     pub fn read_range_mm(&mut self) -> nb::Result<u16, Error<E>> {
         match self.read_register(Register::RESULT_INTERRUPT_STATUS) {
             Ok(r) => {
-                if (r & 0x07) == 0 {
+                if r.trailing_zeros() >= 3 {
                     Err(nb::Error::WouldBlock)
                 } else {
                     let range_err = self.read_16bit(Register::RESULT_RANGE_STATUS_PLUS_10);
@@ -316,7 +317,7 @@ where
     /// Returns a range reading in millimeters when continuous mode is active
     pub fn read_range_continuous_millimeters_blocking(&mut self) -> Result<u16, Error<E>> {
         let mut c = 0;
-        while (self.read_register(Register::RESULT_INTERRUPT_STATUS)? & 0x07) == 0 {
+        while (self.read_register(Register::RESULT_INTERRUPT_STATUS)?).trailing_zeros() >= 3 {
             c += 1;
             if c == 10000 {
                 return Err(Error::Timeout);
@@ -357,7 +358,7 @@ where
     fn perform_single_ref_calibration(&mut self, vhv_init_byte: u8) -> Result<(), Error<E>> {
         self.write_register(Register::SYSRANGE_START, 0x01 | vhv_init_byte)?;
         let mut c = 0;
-        while (self.read_register(Register::RESULT_INTERRUPT_STATUS)? & 0x07) == 0 {
+        while (self.read_register(Register::RESULT_INTERRUPT_STATUS)?).trailing_zeros() >= 3 {
             c += 1;
             if c == 10000 {
                 return Err(Error::Timeout);
