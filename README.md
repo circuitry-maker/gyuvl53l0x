@@ -79,10 +79,6 @@ match gyuvl53l0x::VL53L0X::default(i2c) {
 };
 ```
 
-## Documentation
-
-API Docs available on [docs.rs](https://docs.rs/gyuvl53l0x/0.1.3/gyuvl53l0x/)
-
 ## License
 
 [MIT license](http://opensource.org/licenses/MIT)
