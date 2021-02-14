@@ -13,7 +13,7 @@
     warnings
 )]
 #![allow(dead_code)]
-#![allow(clippy::uninit_assumed_init)]
+#![allow(clippy::uninit_assumed_init, clippy::upper_case_acronyms)]
 
 extern crate cast;
 extern crate embedded_hal as ehal;
