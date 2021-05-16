@@ -5,7 +5,6 @@
 [![Build Status](https://github.com/lucazulian/gyuvl53l0x/workflows/gyuvl53l0x-ci/badge.svg)](https://github.com/lucazulian/gyuvl53l0x/actions?query=workflow%3Agyuvl53l0x-ci)
 [![crates.io](http://meritbadge.herokuapp.com/gyuvl53l0x?style=flat-square)](https://crates.io/crates/gyuvl53l0x)
 [![Docs](https://docs.rs/gyuvl53l0x/badge.svg)](https://docs.rs/gyuvl53l0x)
-[![Coverage Status](https://coveralls.io/repos/github/lucazulian/gyuvl53l0x/badge.svg?branch=master)](https://coveralls.io/github/lucazulian/gyuvl53l0x?branch=master)
 
 ## Basic usage
 
