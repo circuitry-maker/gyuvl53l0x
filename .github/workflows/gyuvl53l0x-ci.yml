@@ -3,10 +3,6 @@ name: gyuvl53l0x-ci
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - "*.*.*"
   schedule:
     - cron: 0 0 * * 0
 
