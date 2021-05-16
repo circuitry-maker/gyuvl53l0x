@@ -3,7 +3,10 @@ name: gyuvl53l0x-ci
 
 on:
   push:
-  pull_request:
+    branches:
+      - '**'
+    tags:
+      - "*.*.*"
   schedule:
     - cron: 0 0 * * 0
 
@@ -90,6 +93,7 @@ jobs:
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
+          args: --all-targets --all-features -- -D warnings
           token: ${{ secrets.GITHUB_TOKEN }}
 
   test:
