@@ -3,7 +3,7 @@
 > no_std driver for [VL53L0X](https://www.st.com/resource/en/datasheet/vl53l0x.pdf) (Time-of-Flight I2C laser-ranging module)
 
 [![Build Status](https://github.com/lucazulian/gyuvl53l0x/workflows/gyuvl53l0x-ci/badge.svg)](https://github.com/lucazulian/gyuvl53l0x/actions?query=workflow%3Agyuvl53l0x-ci)
-[![crates.io](http://meritbadge.herokuapp.com/gyuvl53l0x?style=flat-square)](https://crates.io/crates/gyuvl53l0x)
+[![crates.io](https://img.shields.io/crates/v/gyuvl53l0x.svg)](https://crates.io/crates/gyuvl53l0x)
 [![Docs](https://docs.rs/gyuvl53l0x/badge.svg)](https://docs.rs/gyuvl53l0x)
 
 ## Basic usage
