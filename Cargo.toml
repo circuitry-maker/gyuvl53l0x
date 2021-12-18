@@ -18,5 +18,5 @@ nb = "1.0.0"
 
 [dependencies.cast]
 default-features = false
-version = "0.2.3"
+version = "0.3.0"
 uninit = "0.1.0"
