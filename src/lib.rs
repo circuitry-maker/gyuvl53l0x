@@ -744,10 +744,9 @@ fn encode_timeout(timeout_mclks: u16) -> u16 {
         return 0;
     }
 
-    let mut ls_byte: u32;
     let mut ms_byte: u16 = 0;
 
-    ls_byte = (timeout_mclks as u32) - 1;
+    let mut ls_byte: u32 = (timeout_mclks as u32) - 1;
 
     while (ls_byte & 0xFFFF_FF00) > 0 {
         ls_byte >>= 1;
