@@ -670,7 +670,7 @@ where
         let enables = self.get_sequence_step_enables()?;
         let timeouts = self.get_sequence_step_timeouts(&enables)?;
 
-        let mut use_budget_microseconds: u32 = start_overhead + end_overhead;
+        let mut use_budget_microseconds = start_overhead + end_overhead;
         if enables.tcc {
             use_budget_microseconds += timeouts.msrc_dss_tcc_microseconds + tcc_overhead;
         }
@@ -764,13 +764,13 @@ fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
 }
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
-    let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks);
+    let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
     (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2))
         / 1000
 }
 
 fn timeout_microseconds_to_mclks(timeout_period_microseconds: u32, vcsel_period_pclks: u8) -> u32 {
-    let macro_period_nanoseconds: u32 = calc_macro_period(vcsel_period_pclks);
+    let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
 
     ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2))
         / macro_period_nanoseconds
