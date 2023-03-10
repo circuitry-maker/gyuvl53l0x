@@ -60,7 +60,10 @@ impl<I2C, E> VL53L0X<I2C>
 where
     I2C: WriteRead<Error = E> + Write<Error = E> + Read<Error = E>,
 {
-    /// Creates a sensor with default configuration
+    /// Creates a sensor with default configuration.
+    ///
+    /// Sometimes it is necessary to shift the address by one place. Use `new()` constructor for this purpose:
+    /// `VL53L0X::new(i2c, 0x29 << 1, true)`
     pub fn default(i2c: I2C) -> Result<VL53L0X<I2C>, Error<E>> {
         VL53L0X::new(i2c, ADDRESS_DEFAULT, true)
     }
@@ -72,7 +75,7 @@ where
             io_mode2v8,
             stop_variable: 0,
             measurement_timing_budget_microseconds: 0,
-            address: address << 1,
+            address,
         };
 
         let wai = chip.who_am_i()?;
@@ -234,7 +237,7 @@ where
     pub fn set_device_address(&mut self, address: u8) -> Result<bool, E> {
         match self.write_only_register(Register::REG_I2C_SLAVE_DEVICE_ADDRESS, address) {
             Ok(_) => {
-                self.address = address << 1;
+                self.address = address;
                 Ok(true)
             }
             Err(e) => Err(e),
