@@ -114,8 +114,7 @@ where
     where
         N: ArrayLength<u8>,
     {
-        let mut buffer: GenericArray<u8, N> =
-            unsafe { MaybeUninit::<GenericArray<u8, N>>::uninit().assume_init() };
+        let mut buffer: GenericArray<u8, N> = unsafe { MaybeUninit::<GenericArray<u8, N>>::uninit().assume_init() };
 
         {
             let buffer: &mut [u8] = &mut buffer;
@@ -139,8 +138,7 @@ where
 
     fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
         let mut buffer = [0];
-        self.com
-            .write_read(self.address, &[reg as u8, byte], &mut buffer)
+        self.com.write_read(self.address, &[reg as u8, byte], &mut buffer)
     }
 
     fn write_only_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
@@ -151,9 +149,7 @@ where
         let mut buf: [u8; 6] = [0, 0, 0, 0, 0, 0];
         self.com.write_read(
             self.address,
-            &[
-                reg as u8, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
-            ],
+            &[reg as u8, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
             &mut buf,
         )
     }
@@ -162,8 +158,7 @@ where
         let mut buffer = [0];
         let msb = (word >> 8) as u8;
         let lsb = (word & 0xFF) as u8;
-        self.com
-            .write_read(self.address, &[reg as u8, msb, lsb], &mut buffer)
+        self.com.write_read(self.address, &[reg as u8, msb, lsb], &mut buffer)
     }
 
     fn write_32bit(&mut self, reg: Register, word: u32) -> Result<(), E> {
@@ -469,10 +464,7 @@ where
         // enable the sensor, sensor uses 1V8 mode for I/O by default; switch to 2V8 mode if necessary
         if self.io_mode2v8 {
             let ext_sup_hv = self.read_register(Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV)?;
-            self.write_register(
-                Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,
-                ext_sup_hv | 0x01,
-            )?;
+            self.write_register(Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV, ext_sup_hv | 0x01)?;
         }
 
         // set I2C standard mode
@@ -669,22 +661,15 @@ where
         })
     }
 
-    fn get_sequence_step_timeouts(
-        &mut self,
-        enables: &SeqStepEnables,
-    ) -> Result<SeqStepTimeouts, E> {
-        let pre_range_mclks =
-            decode_timeout(self.read_16bit(Register::PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
-        let mut final_range_mclks =
-            decode_timeout(self.read_16bit(Register::FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
+    fn get_sequence_step_timeouts(&mut self, enables: &SeqStepEnables) -> Result<SeqStepTimeouts, E> {
+        let pre_range_mclks = decode_timeout(self.read_16bit(Register::PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
+        let mut final_range_mclks = decode_timeout(self.read_16bit(Register::FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
         if enables.pre_range {
             final_range_mclks -= pre_range_mclks;
         };
-        let pre_range_vcselperiod_pclks =
-            self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodPreRange)?;
+        let pre_range_vcselperiod_pclks = self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodPreRange)?;
         let msrc_dss_tcc_mclks = self.read_register(Register::MSRC_CONFIG_TIMEOUT_MACROP)? + 1;
-        let final_range_vcsel_period_pclks =
-            self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
+        let final_range_vcsel_period_pclks = self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
 
         Ok(SeqStepTimeouts {
             pre_range_vcselperiod_pclks,
@@ -694,16 +679,10 @@ where
                 pre_range_vcselperiod_pclks,
             ),
             pre_range_mclks,
-            pre_range_microseconds: timeout_mclks_to_microseconds(
-                pre_range_mclks,
-                pre_range_vcselperiod_pclks,
-            ),
+            pre_range_microseconds: timeout_mclks_to_microseconds(pre_range_mclks, pre_range_vcselperiod_pclks),
             final_range_mclks,
             final_range_vcsel_period_pclks,
-            final_range_microseconds: timeout_mclks_to_microseconds(
-                final_range_mclks,
-                final_range_vcsel_period_pclks,
-            ),
+            final_range_microseconds: timeout_mclks_to_microseconds(final_range_mclks, final_range_vcsel_period_pclks),
         })
     }
 
@@ -856,15 +835,13 @@ fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
-    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2))
-        / 1000
+    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2)) / 1000
 }
 
 fn timeout_microseconds_to_mclks(timeout_period_microseconds: u32, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
 
-    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2))
-        / macro_period_nanoseconds
+    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2)) / macro_period_nanoseconds
 }
 
 fn decode_vcsel_period(register_value: u8) -> u8 {
