@@ -48,6 +48,8 @@ pub enum Error<E> {
     BusError(E),
     /// Timeout
     Timeout,
+    /// Invalid argument to function
+    InvalidArgument,
 }
 
 impl<E> From<E> for Error<E> {
@@ -112,8 +114,7 @@ where
     where
         N: ArrayLength<u8>,
     {
-        let mut buffer: GenericArray<u8, N> =
-            unsafe { MaybeUninit::<GenericArray<u8, N>>::uninit().assume_init() };
+        let mut buffer: GenericArray<u8, N> = unsafe { MaybeUninit::<GenericArray<u8, N>>::uninit().assume_init() };
 
         {
             let buffer: &mut [u8] = &mut buffer;
@@ -137,8 +138,7 @@ where
 
     fn write_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
         let mut buffer = [0];
-        self.com
-            .write_read(self.address, &[reg as u8, byte], &mut buffer)
+        self.com.write_read(self.address, &[reg as u8, byte], &mut buffer)
     }
 
     fn write_only_register(&mut self, reg: Register, byte: u8) -> Result<(), E> {
@@ -149,9 +149,7 @@ where
         let mut buf: [u8; 6] = [0, 0, 0, 0, 0, 0];
         self.com.write_read(
             self.address,
-            &[
-                reg as u8, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
-            ],
+            &[reg as u8, bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5]],
             &mut buf,
         )
     }
@@ -160,8 +158,7 @@ where
         let mut buffer = [0];
         let msb = (word >> 8) as u8;
         let lsb = (word & 0xFF) as u8;
-        self.com
-            .write_read(self.address, &[reg as u8, msb, lsb], &mut buffer)
+        self.com.write_read(self.address, &[reg as u8, msb, lsb], &mut buffer)
     }
 
     fn write_32bit(&mut self, reg: Register, word: u32) -> Result<(), E> {
@@ -174,7 +171,95 @@ where
             .write_read(self.address, &[reg as u8, v1, v2, v3, v4], &mut buffer)
     }
 
-    fn set_signal_rate_limit(&mut self, limit: f32) -> Result<bool, E> {
+    /// set the pulse period
+    pub fn set_vcel_pulse_period(&mut self, period_type: VcselPeriodType, period_pclks: u8) -> Result<(), Error<E>> {
+        let vcsel_period_reg = encode_vcsel_period(period_pclks);
+
+        let enables = self.get_sequence_step_enables()?;
+        let timeouts = self.get_sequence_step_timeouts(&enables)?;
+
+        match period_type {
+            VcselPeriodType::VcselPeriodPreRange => {
+                match period_pclks {
+                    12 => self.write_register(Register::PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x18)?,
+                    14 => self.write_register(Register::PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x30)?,
+                    16 => self.write_register(Register::PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x40)?,
+                    18 => self.write_register(Register::PRE_RANGE_CONFIG_VALID_PHASE_HIGH, 0x50)?,
+                    _ => return Err(Error::InvalidArgument),
+                };
+                self.write_register(Register::PRE_RANGE_CONFIG_VALID_PHASE_LOW, 0x88)?;
+                self.write_register(Register::PRE_RANGE_CONFIG_VCSEL_PERIOD, vcsel_period_reg)?;
+            }
+            VcselPeriodType::VcselPeriodFinalRange => {
+                match period_pclks {
+                    8 => {
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x10)?;
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08)?;
+                        self.write_register(Register::GLOBAL_CONFIG_VCSEL_WIDTH, 0x02)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x0C)?;
+                        self.write_byte(0xFF, 0x01)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x30)?;
+                        self.write_byte(0xFF, 0x00)?;
+                    }
+                    10 => {
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x28)?;
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08)?;
+                        self.write_register(Register::GLOBAL_CONFIG_VCSEL_WIDTH, 0x03)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x09)?;
+                        self.write_byte(0xFF, 0x01)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x20)?;
+                        self.write_byte(0xFF, 0x00)?;
+                    }
+                    12 => {
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x38)?;
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08)?;
+                        self.write_register(Register::GLOBAL_CONFIG_VCSEL_WIDTH, 0x03)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x08)?;
+                        self.write_byte(0xFF, 0x01)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x20)?;
+                        self.write_byte(0xFF, 0x00)?;
+                    }
+                    14 => {
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_HIGH, 0x48)?;
+                        self.write_register(Register::FINAL_RANGE_CONFIG_VALID_PHASE_LOW, 0x08)?;
+                        self.write_register(Register::GLOBAL_CONFIG_VCSEL_WIDTH, 0x03)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x07)?;
+                        self.write_byte(0xFF, 0x01)?;
+                        self.write_register(Register::ALGO_PHASECAL_LIM, 0x20)?;
+                        self.write_byte(0xFF, 0x00)?;
+                    }
+                    _ => return Err(Error::InvalidArgument),
+                }
+
+                self.write_register(Register::FINAL_RANGE_CONFIG_VCSEL_PERIOD, vcsel_period_reg)?;
+
+                let mut new_final_range_timeout_mclks =
+                    timeout_microseconds_to_mclks(timeouts.final_range_microseconds, period_pclks) as u16;
+
+                if enables.pre_range {
+                    new_final_range_timeout_mclks += timeouts.pre_range_mclks;
+                }
+
+                self.write_16bit(
+                    Register::FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI,
+                    encode_timeout(new_final_range_timeout_mclks),
+                )?;
+            }
+        }
+
+        let mtbm = self.measurement_timing_budget_microseconds;
+        self.set_measurement_timing_budget(mtbm)?;
+
+        let sequence_config = self.read_register(Register::SYSTEM_SEQUENCE_CONFIG)?;
+        self.write_register(Register::SYSTEM_SEQUENCE_CONFIG, 0x02)?;
+        self.perform_single_ref_calibration(0x00)?;
+        self.write_register(Register::SYSTEM_SEQUENCE_CONFIG, sequence_config)?;
+
+        return Ok(());
+    }
+
+    /// set the signal rate limit, default is 0.25, lower is more accurate
+    pub fn set_signal_rate_limit(&mut self, limit: f32) -> Result<bool, E> {
         if !(0.0..=511.99).contains(&limit) {
             Ok(false)
         } else {
@@ -374,14 +459,12 @@ where
         Ok(())
     }
 
-    fn init_hardware(&mut self) -> Result<(), Error<E>> {
+    /// (re)initialize the hardware
+    pub fn init_hardware(&mut self) -> Result<(), Error<E>> {
         // enable the sensor, sensor uses 1V8 mode for I/O by default; switch to 2V8 mode if necessary
         if self.io_mode2v8 {
             let ext_sup_hv = self.read_register(Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV)?;
-            self.write_register(
-                Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV,
-                ext_sup_hv | 0x01,
-            )?;
+            self.write_register(Register::VHV_CONFIG_PAD_SCL_SDA__EXTSUP_HV, ext_sup_hv | 0x01)?;
         }
 
         // set I2C standard mode
@@ -578,22 +661,15 @@ where
         })
     }
 
-    fn get_sequence_step_timeouts(
-        &mut self,
-        enables: &SeqStepEnables,
-    ) -> Result<SeqStepTimeouts, E> {
-        let pre_range_mclks =
-            decode_timeout(self.read_16bit(Register::PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
-        let mut final_range_mclks =
-            decode_timeout(self.read_16bit(Register::FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
+    fn get_sequence_step_timeouts(&mut self, enables: &SeqStepEnables) -> Result<SeqStepTimeouts, E> {
+        let pre_range_mclks = decode_timeout(self.read_16bit(Register::PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
+        let mut final_range_mclks = decode_timeout(self.read_16bit(Register::FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI)?);
         if enables.pre_range {
             final_range_mclks -= pre_range_mclks;
         };
-        let pre_range_vcselperiod_pclks =
-            self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodPreRange)?;
+        let pre_range_vcselperiod_pclks = self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodPreRange)?;
         let msrc_dss_tcc_mclks = self.read_register(Register::MSRC_CONFIG_TIMEOUT_MACROP)? + 1;
-        let final_range_vcsel_period_pclks =
-            self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
+        let final_range_vcsel_period_pclks = self.get_vcsel_pulse_period(VcselPeriodType::VcselPeriodFinalRange)?;
 
         Ok(SeqStepTimeouts {
             pre_range_vcselperiod_pclks,
@@ -603,16 +679,10 @@ where
                 pre_range_vcselperiod_pclks,
             ),
             pre_range_mclks,
-            pre_range_microseconds: timeout_mclks_to_microseconds(
-                pre_range_mclks,
-                pre_range_vcselperiod_pclks,
-            ),
+            pre_range_microseconds: timeout_mclks_to_microseconds(pre_range_mclks, pre_range_vcselperiod_pclks),
             final_range_mclks,
             final_range_vcsel_period_pclks,
-            final_range_microseconds: timeout_mclks_to_microseconds(
-                final_range_mclks,
-                final_range_vcsel_period_pclks,
-            ),
+            final_range_microseconds: timeout_mclks_to_microseconds(final_range_mclks, final_range_vcsel_period_pclks),
         })
     }
 
@@ -765,15 +835,13 @@ fn calc_macro_period(vcsel_period_pclks: u8) -> u32 {
 
 fn timeout_mclks_to_microseconds(timeout_period_mclks: u16, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
-    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2))
-        / 1000
+    (((timeout_period_mclks as u32) * macro_period_nanoseconds) + (macro_period_nanoseconds / 2)) / 1000
 }
 
 fn timeout_microseconds_to_mclks(timeout_period_microseconds: u32, vcsel_period_pclks: u8) -> u32 {
     let macro_period_nanoseconds = calc_macro_period(vcsel_period_pclks);
 
-    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2))
-        / macro_period_nanoseconds
+    ((timeout_period_microseconds * 1000) + (macro_period_nanoseconds / 2)) / macro_period_nanoseconds
 }
 
 fn decode_vcsel_period(register_value: u8) -> u8 {
@@ -794,6 +862,9 @@ enum Register {
     SYSTEM_SEQUENCE_CONFIG = 0x01,
     FINAL_RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT = 0x44,
     GLOBAL_CONFIG_SPAD_ENABLES_REF_0 = 0xB0,
+    //ALGO_PHASECAL_CONFIG_TIMEOUT = 0x30,
+    ALGO_PHASECAL_LIM = 0x30,
+    GLOBAL_CONFIG_VCSEL_WIDTH = 0x32,
     DYNAMIC_SPAD_REF_EN_START_OFFSET = 0x4F,
     DYNAMIC_SPAD_NUM_REQUESTED_REF_SPAD = 0x4E,
     GLOBAL_CONFIG_REF_EN_START_SELECT = 0xB6,
@@ -809,6 +880,10 @@ enum Register {
     PRE_RANGE_CONFIG_VCSEL_PERIOD = 0x50,
     PRE_RANGE_CONFIG_TIMEOUT_MACROP_HI = 0x51,
     PRE_RANGE_CONFIG_TIMEOUT_MACROP_LO = 0x52,
+    PRE_RANGE_CONFIG_VALID_PHASE_LOW = 0x56,
+    PRE_RANGE_CONFIG_VALID_PHASE_HIGH = 0x57,
+    FINAL_RANGE_CONFIG_VALID_PHASE_LOW = 0x47,
+    FINAL_RANGE_CONFIG_VALID_PHASE_HIGH = 0x48,
     FINAL_RANGE_CONFIG_TIMEOUT_MACROP_HI = 0x71,
     FINAL_RANGE_CONFIG_TIMEOUT_MACROP_LO = 0x72,
     CROSSTALK_COMPENSATION_PEAK_RATE_MCPS = 0x20,
@@ -816,7 +891,10 @@ enum Register {
 }
 
 #[derive(Debug, Copy, Clone)]
-enum VcselPeriodType {
+/// Period types for ranging
+pub enum VcselPeriodType {
+    /// pre ranging
     VcselPeriodPreRange = 0,
+    /// final ranging
     VcselPeriodFinalRange = 1,
 }
